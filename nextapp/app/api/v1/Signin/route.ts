@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/app/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const client = new PrismaClient({ adapter });
+import prisma from "../../../lib/db"
 
 export async function POST(req: NextRequest) {
   const data = await req.json();
   const { email, password } = data;
 
   try {
-    const user = await client.user.create({
+    const user = await prisma.user.create({
       data: {
         email: email,
         password: password
