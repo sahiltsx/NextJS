@@ -1,6 +1,6 @@
 import prisma from "@/app/lib/db";
 import { NextRequest ,NextResponse} from "next/server";
-import bcrypt from "bcrypt"
+import { signToken } from "@/app/lib/auth";
 
 
 export async function POST(req:NextRequest) {
@@ -16,7 +16,7 @@ export async function POST(req:NextRequest) {
       }
 
       const user=await prisma.user.findUnique({
-        where:email
+        where:{email:email}
       })
       if(!user){
         return NextResponse.json({
@@ -25,17 +25,29 @@ export async function POST(req:NextRequest) {
             status:401
         })
       }
-      const isValidPassword=await bcrypt.compare(password,user.password)
-
-      if(!isValidPassword){
-        return NextResponse.json({
-            message:"Password is not valid"
-        },{
-            status:401
-        })
-      }
+      
+      const token=signToken({userId:user.id})
+      const response=NextResponse.json({
+        success:true,
+        user:{
+          id:user.id,
+          email:user.email,
+        }
+      })
+      response.cookies.set("token",token,{
+        httpOnly:true,
+        secure:process.env.NODE_ENV==="production",
+        sameSite:"lax",     
+        path:"/",
+        maxAge:60*60*24*7   // 7 days
+      })
+      return response
     }catch(err){
-
-
+        console.log(err)
+        return NextResponse.json({
+          message:"something went wrong"
+        },{
+          status:500
+        })
     }
 }
